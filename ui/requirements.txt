@@ -1,0 +1,25 @@
+# Streamlit UI Requirements
+# ESP32 Robotics Firmware - WALL-E & EVE Apprenticeship
+# Phase 3: Wi-Fi Telemetry & Streamlit UI
+
+# Core UI framework
+streamlit>=1.28.0
+
+# HTTP requests to ESP32
+requests>=2.31.0
+
+# Data manipulation
+pandas>=2.0.0
+
+# Database for telemetry logging
+# Note: sqlite3 is included in Python standard library
+
+# JSON handling (included in standard library, but listing for reference)
+# json - standard library
+
+# Optional: Plotting (if we want charts)
+plotly>=5.17.0
+altair>=5.1.0
+
+# Optional: Additional utilities
+python-dateutil>=2.8.0

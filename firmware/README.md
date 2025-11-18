@@ -1,10 +1,10 @@
 # ESP32 Robotics Firmware
 
-Phase 2: Core Firmware Features & Subsystem Control
+Phase 3: Wi-Fi Telemetry & Streamlit UI Integration
 
 ## Overview
 
-This is the embedded firmware for the ESP32 Robotics Apprenticeship project. It implements a modular, object-oriented architecture for controlling robotic subsystems including servos, environmental sensors (I2C), SPI devices, and DC motors for locomotion.
+This is the embedded firmware for the ESP32 Robotics Apprenticeship project. It implements a modular, object-oriented architecture for controlling robotic subsystems including servos, environmental sensors (I2C), SPI devices, and DC motors for locomotion. The firmware now includes Wi-Fi connectivity, an HTTP REST API server for telemetry streaming, and command execution via JSON over the network.
 
 ## Project Structure
 
@@ -12,7 +12,7 @@ This is the embedded firmware for the ESP32 Robotics Apprenticeship project. It 
 firmware/
 ├── platformio.ini          # PlatformIO configuration
 ├── src/
-│   └── main.cpp           # Main firmware entry point (Phase 2 integrated)
+│   └── main.cpp           # Main firmware entry point (Phase 3 integrated)
 ├── include/
 │   ├── config.h           # Configuration constants
 │   ├── RobotSubsystem.h   # Abstract base class for subsystems
@@ -20,7 +20,10 @@ firmware/
 │   ├── I2CSensor.h        # I2C environmental sensor (Phase 2)
 │   ├── SPIDevice.h        # SPI device interface (Phase 2)
 │   ├── Locomotion.h       # Motor control for movement (Phase 2)
-│   └── TelemetryData.h    # Telemetry data structure & JSON (Phase 2)
+│   ├── TelemetryData.h    # Telemetry data structure & JSON (Phase 2)
+│   ├── WiFiManager.h      # Wi-Fi connectivity management (Phase 3)
+│   ├── RobotWebServer.h   # HTTP REST API server (Phase 3)
+│   └── CommandProcessor.h # Command parsing and execution (Phase 3)
 ├── lib/                   # External libraries (auto-managed)
 └── test/                  # Unit tests
     ├── test_servo_arm.cpp
@@ -224,6 +227,192 @@ Example:
 - State machine implementation
 - Automated testing sequences
 
+## Features Implemented (Phase 3)
+
+✅ **Wi-Fi Connectivity**
+- Station mode Wi-Fi client
+- Auto-reconnection with configurable retry logic
+- DHCP IP address assignment
+- RSSI (signal strength) monitoring
+- Connection status tracking
+
+✅ **HTTP REST API Server**
+- Web server on port 80 for telemetry and control
+- CORS support for cross-origin requests
+- JSON-based request/response format
+- Callback-based architecture for flexible integration
+
+✅ **API Endpoints**
+- `GET /` - HTML info page with robot status
+- `GET /telemetry` - Real-time telemetry data (JSON)
+- `POST /command` - Execute robot commands (JSON)
+- `GET /status` - Server status and uptime
+
+✅ **Command Processing**
+- JSON command parser with validation
+- Supported commands:
+  - `set_servo_angle` - Control servo position
+  - `set_motor_speed` - Individual motor control
+  - `move_forward` / `move_backward` - Movement commands
+  - `turn_left` / `turn_right` - Turning maneuvers
+  - `rotate` - In-place rotation
+  - `stop_motors` - Emergency stop
+  - `enable_motors` / `disable_motors` - Safety control
+- Command error tracking and reporting
+
+✅ **Network Integration**
+- Seamless integration with existing subsystems
+- Non-blocking network operations
+- Telemetry streaming at configurable intervals
+- Network status in debug output
+
+## Wi-Fi Setup
+
+### 1. Configure Credentials
+
+Edit `include/config.h` to set your Wi-Fi network:
+
+```cpp
+#define WIFI_SSID "YourWiFiSSID"
+#define WIFI_PASSWORD "YourWiFiPassword"
+```
+
+### 2. Upload and Connect
+
+After uploading the firmware, the ESP32 will:
+1. Attempt to connect to the configured network
+2. Display IP address in serial output
+3. Start HTTP server on port 80
+
+### 3. Find Your Robot's IP Address
+
+Watch the serial monitor for:
+```
+[WiFiManager] ✓ Connected to YourWiFiSSID
+[WiFiManager] IP Address: 192.168.1.XXX
+[RobotWebServer] ✓ Server started on port 80
+```
+
+## API Documentation
+
+### GET /telemetry
+
+Returns complete robot state in JSON format.
+
+**Response:**
+```json
+{
+  "timestamp": 123456,
+  "free_heap": 234567,
+  "mode": "active",
+  "servo": {
+    "current_angle": 90.0,
+    "target_angle": 90.0,
+    "enabled": true,
+    "at_target": true
+  },
+  "environment": {
+    "temperature": 25.3,
+    "humidity": 45.2,
+    "pressure": 1013.2,
+    "altitude": 123.4,
+    "read_count": 100,
+    "error_count": 0
+  },
+  "motors": {
+    "motor_a_speed": 0,
+    "motor_b_speed": 0,
+    "motor_a_direction": "forward",
+    "motor_b_direction": "forward",
+    "enabled": false
+  },
+  "status": {
+    "error_code": 0,
+    "error_message": "",
+    "subsystems_ready": 5,
+    "subsystems_total": 5
+  }
+}
+```
+
+### POST /command
+
+Execute a robot command.
+
+**Request Body (JSON):**
+
+Move servo:
+```json
+{
+  "command": "set_servo_angle",
+  "value": 90
+}
+```
+
+Control motor:
+```json
+{
+  "command": "set_motor_speed",
+  "motor": "A",
+  "speed": 150,
+  "forward": true
+}
+```
+
+Move forward:
+```json
+{
+  "command": "move_forward",
+  "speed": 128
+}
+```
+
+Turn left:
+```json
+{
+  "command": "turn_left",
+  "speed": 120,
+  "turn_rate": 64
+}
+```
+
+Rotate in place:
+```json
+{
+  "command": "rotate",
+  "speed": 128,
+  "clockwise": true
+}
+```
+
+Stop motors:
+```json
+{
+  "command": "stop_motors"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Command executed successfully"
+}
+```
+
+### GET /status
+
+Returns web server status.
+
+**Response:**
+```json
+{
+  "server": "ESP32 Robot API",
+  "uptime": 123456,
+  "version": "1.0"
+}
+```
+
 ## Usage Examples
 
 ### Basic LED Control
@@ -386,19 +575,27 @@ This firmware is designed for learning:
 
 ## Next Steps
 
-After mastering Phase 1, proceed to:
+**Completed Phases:**
+- ✅ Phase 1: Foundations & Environment Setup
+- ✅ Phase 2: Core Firmware Features & Subsystem Control
+- ✅ Phase 3: Wi-Fi Telemetry & Streamlit UI Integration
 
-**Phase 2: Core Firmware Features**
-- [ ] I2C sensor integration (BME280)
-- [ ] SPI device communication
-- [ ] PWM motor control
-- [ ] Telemetry data structure
+**Using the Streamlit UI:**
 
-**Phase 3: Wi-Fi & Telemetry**
-- [ ] Wi-Fi connectivity
-- [ ] HTTP server for telemetry
-- [ ] JSON serialization
-- [ ] Streamlit UI integration
+The Streamlit web interface (located in `../ui/`) provides a complete graphical interface for:
+- Real-time telemetry monitoring
+- Robot control (servo, motors, movement)
+- Telemetry history and charts
+- Command history tracking
+- SQLite database logging
+
+See `../ui/README.md` for setup and usage instructions.
+
+**Future Enhancements (Beyond Phase 3):**
+- [ ] Phase 4: Advanced Sensors & Perception
+- [ ] Phase 5: Autonomous Navigation
+- [ ] Phase 6: Computer Vision Integration
+- [ ] Phase 7: Advanced AI Features
 
 ## Resources
 
