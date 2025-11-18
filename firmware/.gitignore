@@ -1,0 +1,50 @@
+# PlatformIO build files and directories
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Build outputs
+*.bin
+*.hex
+*.elf
+*.map
+
+# IDE files
+.vscode/
+.idea/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Compiled Object files
+*.o
+*.obj
+
+# Python cache (if using Python scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Libraries (managed by PlatformIO)
+lib/*
+!lib/README
+
+# Test builds
+test/.pio/
+
+# Environment variables
+.env
+
+# Credentials (never commit these!)
+credentials.h
+secrets.h
+wifi_config.h
