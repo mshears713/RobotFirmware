@@ -1,10 +1,10 @@
 # ESP32 Robotics Firmware
 
-Phase 1: Foundations & Environment Setup
+Phase 2: Core Firmware Features & Subsystem Control
 
 ## Overview
 
-This is the embedded firmware for the ESP32 Robotics Apprenticeship project. It implements a modular, object-oriented architecture for controlling robotic subsystems including servos, sensors, and motors.
+This is the embedded firmware for the ESP32 Robotics Apprenticeship project. It implements a modular, object-oriented architecture for controlling robotic subsystems including servos, environmental sensors (I2C), SPI devices, and DC motors for locomotion.
 
 ## Project Structure
 
@@ -12,23 +12,40 @@ This is the embedded firmware for the ESP32 Robotics Apprenticeship project. It 
 firmware/
 ├── platformio.ini          # PlatformIO configuration
 ├── src/
-│   └── main.cpp           # Main firmware entry point
+│   └── main.cpp           # Main firmware entry point (Phase 2 integrated)
 ├── include/
 │   ├── config.h           # Configuration constants
 │   ├── RobotSubsystem.h   # Abstract base class for subsystems
-│   └── ServoArm.h         # Servo control subsystem
+│   ├── ServoArm.h         # Servo control subsystem (Phase 1)
+│   ├── I2CSensor.h        # I2C environmental sensor (Phase 2)
+│   ├── SPIDevice.h        # SPI device interface (Phase 2)
+│   ├── Locomotion.h       # Motor control for movement (Phase 2)
+│   └── TelemetryData.h    # Telemetry data structure & JSON (Phase 2)
 ├── lib/                   # External libraries (auto-managed)
 └── test/                  # Unit tests
+    ├── test_servo_arm.cpp
+    └── test_locomotion.cpp
 ```
 
 ## Hardware Requirements
 
+### Essential
 - ESP32 development board (ESP32-WROOM-32 or similar)
 - USB cable for programming and power
-- Optional:
-  - Servo motor (for arm control testing)
-  - LED with current-limiting resistor
-  - Pushbutton
+
+### Phase 1 Components
+- Servo motor (standard hobby servo, 5V)
+- LED with current-limiting resistor (220Ω-1kΩ)
+- Pushbutton (built-in BOOT button works)
+
+### Phase 2 Components
+- BME280 sensor (I2C environmental sensor)
+  - Temperature, humidity, pressure measurement
+  - Requires 4.7kΩ pull-up resistors on SDA and SCL
+- DC motors (2x) with motor driver
+  - Motor driver: L298N, DRV8833, TB6612FNG, or similar
+  - Separate power supply for motors (6-12V, NOT from ESP32!)
+- SPI device (optional - for testing SPI communication)
 
 ## Pin Assignments
 
@@ -41,7 +58,22 @@ firmware/
 | Button Input | GPIO 0 | BOOT button (built-in) |
 | Servo Arm | GPIO 18 | PWM output |
 
-See `include/config.h` for complete pin configuration.
+### Phase 2 Pins
+
+| Component | GPIO Pin | Notes |
+|-----------|----------|-------|
+| I2C SDA | GPIO 21 | Data line (requires 4.7kΩ pull-up) |
+| I2C SCL | GPIO 22 | Clock line (requires 4.7kΩ pull-up) |
+| SPI MOSI | GPIO 23 | Master Out Slave In |
+| SPI MISO | GPIO 19 | Master In Slave Out |
+| SPI SCK | GPIO 18 | Serial Clock |
+| SPI CS | GPIO 5 | Chip Select |
+| Motor A PWM | GPIO 25 | Speed control |
+| Motor A DIR | GPIO 26 | Direction control |
+| Motor B PWM | GPIO 27 | Speed control |
+| Motor B DIR | GPIO 14 | Direction control |
+
+See `include/config.h` for complete pin configuration and customization.
 
 ## Getting Started
 
@@ -154,6 +186,43 @@ Example:
 - Non-blocking timing with `millis()`
 - Cooperative multitasking
 - Periodic update cycle
+
+## Features Implemented (Phase 2)
+
+✅ **I2C Communication**
+- BME280 environmental sensor integration
+- I2C bus scanning and device detection
+- Temperature, humidity, pressure readings
+- Altitude calculation from barometric pressure
+- Error counting and reliability tracking
+
+✅ **SPI Communication**
+- Generic SPI device interface
+- Configurable clock speed and mode
+- Register read/write operations
+- Burst read/write support
+- Transaction management
+
+✅ **Motor Control (Locomotion)**
+- Dual DC motor PWM control
+- H-bridge direction control
+- Differential drive implementation
+- High-level movement commands (forward, backward, turn, rotate)
+- Motor enable/disable for safety
+- Speed limiting and validation
+
+✅ **Telemetry System**
+- Comprehensive system state structure
+- JSON serialization with ArduinoJson
+- Real-time data collection from all subsystems
+- Structured data format for UI consumption
+- Pretty-print support for debugging
+
+✅ **Demo Modes**
+- Interactive button-controlled demonstrations
+- 4 demo modes showcasing different subsystems
+- State machine implementation
+- Automated testing sequences
 
 ## Usage Examples
 
