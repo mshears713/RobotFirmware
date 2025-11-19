@@ -1,0 +1,133 @@
+[
+  {
+    "description": "Set servo to 45 degrees",
+    "command": {
+      "command": "set_servo_angle",
+      "value": 45
+    }
+  },
+  {
+    "description": "Move forward at medium speed",
+    "command": {
+      "command": "move_forward",
+      "speed": 150
+    }
+  },
+  {
+    "description": "Move backward slowly",
+    "command": {
+      "command": "move_backward",
+      "speed": 80
+    }
+  },
+  {
+    "description": "Turn left with moderate turn rate",
+    "command": {
+      "command": "turn_left",
+      "speed": 120,
+      "turn_rate": 64
+    }
+  },
+  {
+    "description": "Turn right sharply",
+    "command": {
+      "command": "turn_right",
+      "speed": 150,
+      "turn_rate": 100
+    }
+  },
+  {
+    "description": "Rotate clockwise in place",
+    "command": {
+      "command": "rotate",
+      "speed": 100,
+      "clockwise": true
+    }
+  },
+  {
+    "description": "Rotate counter-clockwise",
+    "command": {
+      "command": "rotate",
+      "speed": 100,
+      "clockwise": false
+    }
+  },
+  {
+    "description": "Emergency stop all motors",
+    "command": {
+      "command": "stop_motors"
+    }
+  },
+  {
+    "description": "Enable motors for operation",
+    "command": {
+      "command": "enable_motors"
+    }
+  },
+  {
+    "description": "Disable motors for safety",
+    "command": {
+      "command": "disable_motors"
+    }
+  },
+  {
+    "description": "Set motor A forward at high speed",
+    "command": {
+      "command": "set_motor_speed",
+      "motor": "A",
+      "speed": 200,
+      "forward": true
+    }
+  },
+  {
+    "description": "Set motor B reverse at low speed",
+    "command": {
+      "command": "set_motor_speed",
+      "motor": "B",
+      "speed": 80,
+      "forward": false
+    }
+  },
+  {
+    "description": "Set both motors forward at max speed",
+    "command": {
+      "command": "set_motor_speed",
+      "motor": "BOTH",
+      "speed": 255,
+      "forward": true
+    }
+  },
+  {
+    "description": "Enter low power mode",
+    "command": {
+      "command": "set_power_mode",
+      "mode": "low_power"
+    }
+  },
+  {
+    "description": "Return to active power mode",
+    "command": {
+      "command": "set_power_mode",
+      "mode": "active"
+    }
+  },
+  {
+    "description": "Set operational mode to active",
+    "command": {
+      "command": "set_operational_mode",
+      "mode": "active"
+    }
+  },
+  {
+    "description": "Clear all error logs",
+    "command": {
+      "command": "clear_errors"
+    }
+  },
+  {
+    "description": "Perform system health check",
+    "command": {
+      "command": "perform_health_check"
+    }
+  }
+]
