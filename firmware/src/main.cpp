@@ -3,7 +3,7 @@
  * @brief Main firmware entry point for ESP32 Robotics Project
  *
  * ESP32 Robotics Firmware - WALL-E & EVE Apprenticeship
- * Phase 3: Wi-Fi Telemetry & Streamlit UI Integration
+ * Phase 4: Additional Features, Testing & Optimization
  *
  * EDUCATIONAL NOTE: This is the heart of the embedded firmware. The structure
  * follows the standard Arduino pattern:
@@ -17,6 +17,13 @@
  * - Remote telemetry via JSON
  * - Remote command execution
  * - Integration with Streamlit UI
+ *
+ * Phase 4 additions:
+ * - Power management with multiple power modes
+ * - Sensor fusion for improved accuracy
+ * - Comprehensive error detection and recovery
+ * - Enhanced mode management
+ * - System health monitoring
  */
 
 #include <Arduino.h>
@@ -30,6 +37,9 @@
 #include "WiFiManager.h"
 #include "RobotWebServer.h"
 #include "CommandProcessor.h"
+#include "PowerManager.h"
+#include "SensorFusion.h"
+#include "ErrorManager.h"
 
 // ============================================================================
 // GLOBAL VARIABLES
@@ -62,6 +72,11 @@ Locomotion* locomotion = nullptr;
 WiFiManager* wifiManager = nullptr;
 RobotWebServer* webServer = nullptr;
 CommandProcessor* commandProcessor = nullptr;
+
+// Phase 4: Advanced subsystems
+PowerManager* powerManager = nullptr;
+SensorFusion* sensorFusion = nullptr;
+ErrorManager* errorManager = nullptr;
 
 // Telemetry data
 TelemetryData telemetry;
@@ -101,7 +116,7 @@ void setup() {
     Serial.println("========================================");
     Serial.println("  ESP32 Robotics Firmware");
     Serial.println("  WALL-E & EVE Apprenticeship");
-    Serial.println("  Phase 3: Wi-Fi & Streamlit UI");
+    Serial.println("  Phase 4: Advanced Features");
     Serial.println("========================================");
     Serial.println();
 
@@ -173,6 +188,19 @@ void loop() {
 
     if (webServer != nullptr && webServer->isReady()) {
         webServer->update();
+    }
+
+    // Phase 4: Update advanced subsystems
+    if (errorManager != nullptr && errorManager->isReady()) {
+        errorManager->update();
+    }
+
+    if (powerManager != nullptr && powerManager->isReady()) {
+        powerManager->update();
+    }
+
+    if (sensorFusion != nullptr && sensorFusion->isReady()) {
+        sensorFusion->update();
     }
 
     // Update telemetry data structure
@@ -308,8 +336,38 @@ void setupNetworking() {
 
     Serial.println();
 
-    // Initialize Command Processor
-    commandProcessor = new CommandProcessor(servoArm, locomotion);
+    // Phase 4: Initialize Error Manager (first, so other subsystems can use it)
+    errorManager = new ErrorManager();
+    if (errorManager->initialize()) {
+        Serial.println("[INIT] ✓ Error Manager ready");
+    } else {
+        Serial.println("[INIT] ✗ Error Manager initialization failed");
+    }
+
+    Serial.println();
+
+    // Phase 4: Initialize Power Manager
+    powerManager = new PowerManager();
+    if (powerManager->initialize()) {
+        Serial.println("[INIT] ✓ Power Manager ready");
+    } else {
+        Serial.println("[INIT] ✗ Power Manager initialization failed");
+    }
+
+    Serial.println();
+
+    // Phase 4: Initialize Sensor Fusion
+    sensorFusion = new SensorFusion();
+    if (sensorFusion->initialize()) {
+        Serial.println("[INIT] ✓ Sensor Fusion ready");
+    } else {
+        Serial.println("[INIT] ✗ Sensor Fusion initialization failed");
+    }
+
+    Serial.println();
+
+    // Initialize Command Processor (now with Phase 4 subsystems)
+    commandProcessor = new CommandProcessor(servoArm, locomotion, powerManager, errorManager);
     Serial.println("[INIT] ✓ Command Processor ready");
 
     Serial.println();
@@ -470,15 +528,74 @@ void updateTelemetry() {
 
     // Count ready subsystems
     int ready = 0;
-    int total = 4;  // servoArm, i2cSensor, spiDevice, locomotion
+    int total = 7;  // servoArm, i2cSensor, spiDevice, locomotion, powerManager, sensorFusion, errorManager
 
     if (servoArm && servoArm->isReady()) ready++;
     if (i2cSensor && i2cSensor->isReady()) ready++;
     if (spiDevice && spiDevice->isReady()) ready++;
     if (locomotion && locomotion->isReady()) ready++;
+    if (powerManager && powerManager->isReady()) ready++;
+    if (sensorFusion && sensorFusion->isReady()) ready++;
+    if (errorManager && errorManager->isReady()) ready++;
 
     telemetry.subsystemsReady = ready;
     telemetry.subsystemsTotal = total;
+
+    // Phase 4: Power management data
+    if (powerManager != nullptr) {
+        telemetry.powerMode = powerManager->getPowerModeString();
+        telemetry.timeSinceActivity = powerManager->getTimeSinceActivity();
+        telemetry.estimatedCurrent = powerManager->getEstimatedCurrentDraw();
+        telemetry.lastWakeReason = powerManager->getWakeReasonString();
+    } else {
+        telemetry.powerMode = "unknown";
+        telemetry.timeSinceActivity = 0;
+        telemetry.estimatedCurrent = 0.0f;
+        telemetry.lastWakeReason = "none";
+    }
+
+    // Phase 4: Sensor fusion data
+    if (sensorFusion != nullptr && i2cSensor != nullptr) {
+        // Use sensor fusion to combine temperature readings
+        // For demo purposes, fuse the single sensor with itself using EMA
+        float rawTemp = i2cSensor->getTemperature();
+        telemetry.fusedTemperature = sensorFusion->updateEma(rawTemp);
+        telemetry.fusionConfidence = (i2cSensor->getErrorCount() == 0) ? 1.0f : 0.5f;
+        telemetry.fusionSampleCount = sensorFusion->getTotalSamples();
+    } else {
+        telemetry.fusedTemperature = telemetry.temperature;
+        telemetry.fusionConfidence = 0.0f;
+        telemetry.fusionSampleCount = 0;
+    }
+
+    // Phase 4: Error management data
+    if (errorManager != nullptr) {
+        telemetry.errorLogCount = errorManager->getTotalErrors();
+        telemetry.warningCount = errorManager->getTotalWarnings();
+        telemetry.recoveryCount = errorManager->getTotalRecoveries();
+        telemetry.systemHealth = errorManager->getSystemHealth();
+
+        if (errorManager->hasError()) {
+            telemetry.currentErrorSeverity = String("ERROR");
+            telemetry.errorCode = (int)errorManager->getCurrentError();
+            telemetry.errorMessage = errorManager->getCurrentMessage();
+        } else {
+            telemetry.currentErrorSeverity = String("INFO");
+            telemetry.errorCode = 0;
+            telemetry.errorMessage = "";
+        }
+    } else {
+        telemetry.errorLogCount = 0;
+        telemetry.warningCount = 0;
+        telemetry.recoveryCount = 0;
+        telemetry.systemHealth = 100.0f;
+        telemetry.currentErrorSeverity = String("INFO");
+    }
+
+    // Update operational mode from command processor
+    if (commandProcessor != nullptr) {
+        telemetry.operationalMode = commandProcessor->getOperationalMode();
+    }
 }
 
 // ============================================================================
@@ -626,6 +743,22 @@ void printDebugInfo() {
     if (webServer != nullptr) {
         Serial.print("    - ");
         Serial.println(webServer->getStatus());
+    }
+
+    // Phase 4: Advanced subsystems
+    if (powerManager != nullptr) {
+        Serial.print("    - ");
+        Serial.println(powerManager->getStatus());
+    }
+
+    if (sensorFusion != nullptr) {
+        Serial.print("    - ");
+        Serial.println(sensorFusion->getStatus());
+    }
+
+    if (errorManager != nullptr) {
+        Serial.print("    - ");
+        Serial.println(errorManager->getStatus());
     }
 
     Serial.println("========================================");

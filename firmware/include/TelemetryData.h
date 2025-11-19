@@ -228,6 +228,85 @@ struct TelemetryData {
     int subsystemsTotal;
 
     // ========================================================================
+    // PHASE 4: POWER MANAGEMENT DATA
+    // ========================================================================
+
+    /**
+     * @brief Current power mode
+     *
+     * EDUCATIONAL: Power modes affect battery life:
+     * - "active": Full operation (~160mA)
+     * - "idle": Reduced activity (~100mA)
+     * - "low_power": Modem sleep (~30mA)
+     * - "light_sleep": CPU paused (~0.8mA)
+     * - "deep_sleep": Full shutdown (~10µA)
+     */
+    String powerMode;
+
+    /**
+     * @brief Time since last activity in milliseconds
+     */
+    unsigned long timeSinceActivity;
+
+    /**
+     * @brief Estimated current draw in milliamps
+     */
+    float estimatedCurrent;
+
+    /**
+     * @brief Last wake reason (for sleep modes)
+     */
+    String lastWakeReason;
+
+    // ========================================================================
+    // PHASE 4: SENSOR FUSION DATA
+    // ========================================================================
+
+    /**
+     * @brief Fused temperature value (combining multiple sensors)
+     */
+    float fusedTemperature;
+
+    /**
+     * @brief Temperature sensor fusion confidence (0.0-1.0)
+     */
+    float fusionConfidence;
+
+    /**
+     * @brief Number of samples in fusion buffer
+     */
+    int fusionSampleCount;
+
+    // ========================================================================
+    // PHASE 4: ERROR MANAGEMENT DATA
+    // ========================================================================
+
+    /**
+     * @brief Number of errors logged
+     */
+    int errorLogCount;
+
+    /**
+     * @brief Number of warnings logged
+     */
+    int warningCount;
+
+    /**
+     * @brief Number of successful recoveries
+     */
+    int recoveryCount;
+
+    /**
+     * @brief System health percentage (0-100)
+     */
+    float systemHealth;
+
+    /**
+     * @brief Current error severity ("INFO", "WARNING", "ERROR", "CRITICAL")
+     */
+    String currentErrorSeverity;
+
+    // ========================================================================
     // JSON SERIALIZATION
     // ========================================================================
 
@@ -245,8 +324,8 @@ struct TelemetryData {
     String toJson() const {
         // EDUCATIONAL: StaticJsonDocument size must fit all data.
         // If too small, serialization fails. If too large, wastes stack memory.
-        // 1024 bytes is generous for this data set.
-        StaticJsonDocument<1024> doc;
+        // 1536 bytes to accommodate Phase 4 additions.
+        StaticJsonDocument<1536> doc;
 
         // System info
         doc["timestamp"] = timestamp;
@@ -289,6 +368,27 @@ struct TelemetryData {
         status["subsystems_ready"] = subsystemsReady;
         status["subsystems_total"] = subsystemsTotal;
 
+        // Phase 4: Power management data
+        JsonObject power = doc.createNestedObject("power");
+        power["mode"] = powerMode;
+        power["time_since_activity"] = timeSinceActivity;
+        power["estimated_current"] = estimatedCurrent;
+        power["last_wake_reason"] = lastWakeReason;
+
+        // Phase 4: Sensor fusion data
+        JsonObject fusion = doc.createNestedObject("fusion");
+        fusion["fused_temperature"] = fusedTemperature;
+        fusion["confidence"] = fusionConfidence;
+        fusion["sample_count"] = fusionSampleCount;
+
+        // Phase 4: Error management data
+        JsonObject errors = doc.createNestedObject("errors");
+        errors["log_count"] = errorLogCount;
+        errors["warning_count"] = warningCount;
+        errors["recovery_count"] = recoveryCount;
+        errors["system_health"] = systemHealth;
+        errors["current_severity"] = currentErrorSeverity;
+
         // Serialize to string
         String output;
         serializeJson(doc, output);
@@ -304,7 +404,7 @@ struct TelemetryData {
      * @return Formatted JSON string
      */
     String toPrettyJson() const {
-        StaticJsonDocument<1024> doc;
+        StaticJsonDocument<1536> doc;
 
         // Same as toJson() but with pretty printing
         doc["timestamp"] = timestamp;
@@ -342,6 +442,27 @@ struct TelemetryData {
         status["subsystems_ready"] = subsystemsReady;
         status["subsystems_total"] = subsystemsTotal;
 
+        // Phase 4: Power management data
+        JsonObject power = doc.createNestedObject("power");
+        power["mode"] = powerMode;
+        power["time_since_activity"] = timeSinceActivity;
+        power["estimated_current"] = estimatedCurrent;
+        power["last_wake_reason"] = lastWakeReason;
+
+        // Phase 4: Sensor fusion data
+        JsonObject fusion = doc.createNestedObject("fusion");
+        fusion["fused_temperature"] = fusedTemperature;
+        fusion["confidence"] = fusionConfidence;
+        fusion["sample_count"] = fusionSampleCount;
+
+        // Phase 4: Error management data
+        JsonObject errors = doc.createNestedObject("errors");
+        errors["log_count"] = errorLogCount;
+        errors["warning_count"] = warningCount;
+        errors["recovery_count"] = recoveryCount;
+        errors["system_health"] = systemHealth;
+        errors["current_severity"] = currentErrorSeverity;
+
         // Serialize with pretty printing (adds indentation/newlines)
         String output;
         serializeJsonPretty(doc, output);
@@ -361,7 +482,7 @@ struct TelemetryData {
      * @return true if parsing successful, false otherwise
      */
     bool fromJson(const String& jsonString) {
-        StaticJsonDocument<1024> doc;
+        StaticJsonDocument<1536> doc;
 
         // Attempt to parse JSON
         DeserializationError error = deserializeJson(doc, jsonString);
@@ -409,6 +530,24 @@ struct TelemetryData {
         errorMessage = doc["status"]["error_message"] | String("");
         subsystemsReady = doc["status"]["subsystems_ready"] | 0;
         subsystemsTotal = doc["status"]["subsystems_total"] | 0;
+
+        // Phase 4: Power management data
+        powerMode = doc["power"]["mode"] | String("active");
+        timeSinceActivity = doc["power"]["time_since_activity"] | 0;
+        estimatedCurrent = doc["power"]["estimated_current"] | 0.0f;
+        lastWakeReason = doc["power"]["last_wake_reason"] | String("none");
+
+        // Phase 4: Sensor fusion data
+        fusedTemperature = doc["fusion"]["fused_temperature"] | 0.0f;
+        fusionConfidence = doc["fusion"]["confidence"] | 0.0f;
+        fusionSampleCount = doc["fusion"]["sample_count"] | 0;
+
+        // Phase 4: Error management data
+        errorLogCount = doc["errors"]["log_count"] | 0;
+        warningCount = doc["errors"]["warning_count"] | 0;
+        recoveryCount = doc["errors"]["recovery_count"] | 0;
+        systemHealth = doc["errors"]["system_health"] | 100.0f;
+        currentErrorSeverity = doc["errors"]["current_severity"] | String("INFO");
 
         return true;
     }
