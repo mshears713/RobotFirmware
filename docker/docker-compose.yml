@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # Firmware Build Environment
+  firmware-builder:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.firmware
+    image: esp32-robot-firmware:latest
+    container_name: esp32-firmware-builder
+    volumes:
+      # Mount project directory
+      - ../firmware:/workspace/firmware
+      - ../docs:/workspace/docs
+      - ../examples:/workspace/examples
+      # Mount USB devices (for firmware upload)
+      # On Windows: Use Docker Desktop settings to share USB devices
+      # On Linux/WSL: Map devices directly
+      - /dev:/dev
+    privileged: true  # Required for USB device access
+    working_dir: /workspace/firmware
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+    networks:
+      - robot-network
+
+  # Streamlit UI
+  robot-ui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ui
+    image: esp32-robot-ui:latest
+    container_name: esp32-robot-ui
+    ports:
+      - "8501:8501"  # Streamlit UI
+    volumes:
+      # Mount UI directory for live development
+      - ../ui:/app
+      # SQLite database persistence
+      - robot-data:/app/data
+    environment:
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+      # Default ESP32 IP (can be overridden)
+      - ESP32_IP=192.168.1.100
+    restart: unless-stopped
+    networks:
+      - robot-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Telemetry logger service
+  telemetry-logger:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ui
+    image: esp32-robot-ui:latest
+    container_name: esp32-telemetry-logger
+    volumes:
+      - ../examples:/app/examples
+      - robot-data:/app/data
+    environment:
+      - ESP32_IP=192.168.1.100
+    command: python /app/examples/test_sequence.py
+    restart: "no"
+    networks:
+      - robot-network
+    profiles:
+      - tools  # Only start when explicitly requested
+
+networks:
+  robot-network:
+    driver: bridge
+
+volumes:
+  robot-data:
+    driver: local

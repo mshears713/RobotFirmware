@@ -1,0 +1,70 @@
+# Docker ignore file for ESP32 Robotics Project
+# Prevents unnecessary files from being copied into Docker images
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation (not needed in containers)
+*.md
+!README.md
+docs/
+
+# Build artifacts
+.pio/
+.vscode/
+build/
+*.bin
+*.elf
+*.hex
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Test results
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Backup files
+*.bak
+*.backup
