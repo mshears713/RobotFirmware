@@ -19,7 +19,12 @@
  * - rotate: Rotate in place
  * - stop_motors: Emergency stop
  * - enable_motors/disable_motors: Motor safety
- * - set_mode: Change operational mode
+ *
+ * Phase 4 Commands:
+ * - set_power_mode: Change power management mode
+ * - clear_errors: Clear error log
+ * - perform_health_check: Run system health check
+ * - set_operational_mode: Change operational mode (idle/active/etc)
  */
 
 #ifndef COMMAND_PROCESSOR_H
@@ -29,6 +34,8 @@
 #include <ArduinoJson.h>
 #include "ServoArm.h"
 #include "Locomotion.h"
+#include "PowerManager.h"
+#include "ErrorManager.h"
 
 /**
  * @class CommandProcessor
@@ -48,12 +55,22 @@ public:
      *
      * @param servo Pointer to ServoArm subsystem
      * @param locomotion Pointer to Locomotion subsystem
+     * @param powerManager Pointer to PowerManager (Phase 4)
+     * @param errorManager Pointer to ErrorManager (Phase 4)
      */
-    CommandProcessor(ServoArm* servo, Locomotion* locomotion)
+    CommandProcessor(
+        ServoArm* servo,
+        Locomotion* locomotion,
+        PowerManager* powerManager = nullptr,
+        ErrorManager* errorManager = nullptr
+    )
         : _servo(servo),
           _locomotion(locomotion),
+          _powerManager(powerManager),
+          _errorManager(errorManager),
           _commandCount(0),
-          _errorCount(0)
+          _errorCount(0),
+          _currentMode("active")
     {
         // Constructor stores subsystem pointers
     }
@@ -114,6 +131,19 @@ public:
         else if (strcmp(command, "disable_motors") == 0) {
             success = handleDisableMotors(commandJson);
         }
+        // Phase 4 commands
+        else if (strcmp(command, "set_power_mode") == 0) {
+            success = handleSetPowerMode(commandJson);
+        }
+        else if (strcmp(command, "set_operational_mode") == 0) {
+            success = handleSetOperationalMode(commandJson);
+        }
+        else if (strcmp(command, "clear_errors") == 0) {
+            success = handleClearErrors(commandJson);
+        }
+        else if (strcmp(command, "perform_health_check") == 0) {
+            success = handlePerformHealthCheck(commandJson);
+        }
         else {
             Serial.print("[CommandProcessor] ✗ Unknown command: ");
             Serial.println(command);
@@ -140,6 +170,20 @@ public:
      */
     unsigned long getErrorCount() const {
         return _errorCount;
+    }
+
+    /**
+     * @brief Get current operational mode
+     */
+    String getOperationalMode() const {
+        return _currentMode;
+    }
+
+    /**
+     * @brief Set operational mode
+     */
+    void setOperationalMode(const String& mode) {
+        _currentMode = mode;
     }
 
 private:
@@ -384,11 +428,128 @@ private:
         return true;
     }
 
+    // ========================================================================
+    // PHASE 4: POWER MANAGEMENT COMMANDS
+    // ========================================================================
+
+    /**
+     * @brief Handle set_power_mode command
+     *
+     * Format: {"command": "set_power_mode", "mode": "low_power"}
+     * Modes: active, idle, low_power, light_sleep, deep_sleep
+     */
+    bool handleSetPowerMode(const JsonDocument& cmd) {
+        if (_powerManager == nullptr) {
+            Serial.println("[CommandProcessor] ✗ PowerManager not available");
+            return false;
+        }
+
+        if (!cmd.containsKey("mode")) {
+            Serial.println("[CommandProcessor] ✗ Missing 'mode' parameter");
+            return false;
+        }
+
+        const char* modeStr = cmd["mode"];
+        PowerMode mode;
+
+        if (strcmp(modeStr, "active") == 0) {
+            mode = PowerMode::ACTIVE;
+        } else if (strcmp(modeStr, "idle") == 0) {
+            mode = PowerMode::IDLE;
+        } else if (strcmp(modeStr, "low_power") == 0) {
+            mode = PowerMode::LOW_POWER;
+        } else if (strcmp(modeStr, "light_sleep") == 0) {
+            mode = PowerMode::LIGHT_SLEEP;
+        } else if (strcmp(modeStr, "deep_sleep") == 0) {
+            mode = PowerMode::DEEP_SLEEP;
+        } else {
+            Serial.print("[CommandProcessor] ✗ Invalid power mode: ");
+            Serial.println(modeStr);
+            return false;
+        }
+
+        _powerManager->setPowerMode(mode);
+
+        Serial.print("[CommandProcessor] ✓ Power mode set to ");
+        Serial.println(modeStr);
+
+        return true;
+    }
+
+    /**
+     * @brief Handle set_operational_mode command
+     *
+     * Format: {"command": "set_operational_mode", "mode": "active"}
+     * Modes: idle, active, maintenance, error
+     */
+    bool handleSetOperationalMode(const JsonDocument& cmd) {
+        if (!cmd.containsKey("mode")) {
+            Serial.println("[CommandProcessor] ✗ Missing 'mode' parameter");
+            return false;
+        }
+
+        const char* mode = cmd["mode"];
+        _currentMode = String(mode);
+
+        Serial.print("[CommandProcessor] ✓ Operational mode set to ");
+        Serial.println(mode);
+
+        // Register activity with power manager
+        if (_powerManager != nullptr) {
+            _powerManager->registerActivity();
+        }
+
+        return true;
+    }
+
+    // ========================================================================
+    // PHASE 4: ERROR MANAGEMENT COMMANDS
+    // ========================================================================
+
+    /**
+     * @brief Handle clear_errors command
+     *
+     * Format: {"command": "clear_errors"}
+     */
+    bool handleClearErrors(const JsonDocument& cmd) {
+        if (_errorManager == nullptr) {
+            Serial.println("[CommandProcessor] ✗ ErrorManager not available");
+            return false;
+        }
+
+        _errorManager->clearAllErrors();
+
+        Serial.println("[CommandProcessor] ✓ Error log cleared");
+
+        return true;
+    }
+
+    /**
+     * @brief Handle perform_health_check command
+     *
+     * Format: {"command": "perform_health_check"}
+     */
+    bool handlePerformHealthCheck(const JsonDocument& cmd) {
+        if (_errorManager == nullptr) {
+            Serial.println("[CommandProcessor] ✗ ErrorManager not available");
+            return false;
+        }
+
+        _errorManager->performSystemHealthCheck();
+
+        Serial.println("[CommandProcessor] ✓ Health check completed");
+
+        return true;
+    }
+
     // Private member variables
     ServoArm* _servo;               ///< Pointer to servo subsystem
     Locomotion* _locomotion;        ///< Pointer to locomotion subsystem
+    PowerManager* _powerManager;    ///< Pointer to power manager (Phase 4)
+    ErrorManager* _errorManager;    ///< Pointer to error manager (Phase 4)
     unsigned long _commandCount;    ///< Total commands processed
     unsigned long _errorCount;      ///< Failed commands count
+    String _currentMode;            ///< Current operational mode
 };
 
 #endif // COMMAND_PROCESSOR_H

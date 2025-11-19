@@ -1,0 +1,54 @@
+{
+  "timestamp": 123456,
+  "free_heap": 280000,
+  "mode": "active",
+  "servo": {
+    "current_angle": 90.5,
+    "target_angle": 90.0,
+    "enabled": true,
+    "at_target": true
+  },
+  "environment": {
+    "temperature": 25.3,
+    "humidity": 45.2,
+    "pressure": 1013.25,
+    "altitude": 100.5,
+    "read_count": 1234,
+    "error_count": 0
+  },
+  "motors": {
+    "motor_a_speed": 150,
+    "motor_b_speed": 150,
+    "motor_a_direction": "forward",
+    "motor_b_direction": "forward",
+    "enabled": true
+  },
+  "spi": {
+    "transfer_count": 567,
+    "test_value": 42
+  },
+  "status": {
+    "error_code": 0,
+    "error_message": "",
+    "subsystems_ready": 7,
+    "subsystems_total": 7
+  },
+  "power": {
+    "mode": "ACTIVE",
+    "time_since_activity": 1234,
+    "estimated_current": 160.0,
+    "last_wake_reason": "Power-on/Reset"
+  },
+  "fusion": {
+    "fused_temperature": 25.3,
+    "confidence": 1.0,
+    "sample_count": 100
+  },
+  "errors": {
+    "log_count": 0,
+    "warning_count": 0,
+    "recovery_count": 0,
+    "system_health": 100.0,
+    "current_severity": "INFO"
+  }
+}

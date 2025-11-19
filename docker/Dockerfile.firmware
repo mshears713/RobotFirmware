@@ -1,0 +1,35 @@
+# Firmware Build Environment Dockerfile
+# Provides PlatformIO and all tools needed to build ESP32 firmware
+
+FROM python:3.11-slim
+
+LABEL maintainer="ESP32 Robotics Project"
+LABEL description="PlatformIO build environment for ESP32 firmware"
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    wget \
+    unzip \
+    build-essential \
+    udev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PlatformIO
+RUN pip install --no-cache-dir platformio
+
+# Pre-install ESP32 platform to speed up builds
+RUN pio platform install espressif32
+
+# Create workspace directory
+WORKDIR /workspace
+
+# Set up USB device access (for flashing)
+RUN usermod -a -G dialout root || true
+
+# Volume mount point for project files
+VOLUME ["/workspace"]
+
+# Default command: show PlatformIO version
+CMD ["pio", "--version"]
